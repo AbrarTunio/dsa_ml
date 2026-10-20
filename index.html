@@ -320,7 +320,7 @@ print("MAE on test:", round(mean_absolute_error(y_test, model.predict(X_test)), 
           <div class="col-lg-8"><canvas id="knnCanvas" aria-label="Interactive KNN scatter plot"></canvas></div>
           <div class="col-lg-4">
             <label class="form-label" for="kSlider">k = <strong id="kVal">5</strong></label>
-            <input type="range" class="form-range" id="kSlider" min="1" max="15" step="2" value="5">
+            <input type="range" class="form-range" id="kSlider" min="1" max="25" step="2" value="5">
             <div class="form-check form-switch my-2">
               <input class="form-check-input" type="checkbox" id="regionChk">
               <label class="form-check-label" for="regionChk">Show decision regions</label>
@@ -334,8 +334,26 @@ print("MAE on test:", round(mean_absolute_error(y_test, model.predict(X_test)), 
           </div>
         </div>
         <h4 class="mt-4 h5">Overfitting check: train vs test accuracy as k changes</h4>
-        <p class="text-muted-2 small">Computed live on the points above, split 70/30.</p>
-        <div style="position:relative; height:260px"><canvas id="kChart"></canvas></div>
+        <p class="text-muted-2 small mb-2">Computed live on the points above: 49 points train the model, 21 points test it.</p>
+        <div class="d-flex flex-wrap gap-4 align-items-end mb-2">
+          <div><div class="stat-label">Your k</div><div class="stat" id="kNow">5</div></div>
+          <div><div class="stat-label">Training accuracy</div><div class="stat" style="color:var(--a)" id="kTrain">–</div></div>
+          <div><div class="stat-label">Test accuracy</div><div class="stat" style="color:var(--b)" id="kTest">–</div></div>
+          <div><div class="stat-label">Gap (train − test)</div><div class="stat" id="kGap">–</div></div>
+        </div>
+        <div style="position:relative; height:280px"><canvas id="kChart"></canvas></div>
+        <div class="callout mt-3">
+          <strong>Why the lines don’t move when you change k:</strong> this chart is not a single model. Each dot is a separate KNN model trained with a different k (1, 3, 5 … 25), so every value of k is already plotted. Moving the k slider moves the dashed marker to the model you picked and updates the numbers above. The lines only change if the data or the split changes.
+        </div>
+        <div class="sheet p-3 mt-3 small">
+          <strong>How to read it</strong>
+          <ul class="mb-0 mt-1">
+            <li><strong>Left side (small k): overfitting.</strong> At k = 1 every training point is its own nearest neighbour, so training accuracy is always 1.00, but test accuracy is much lower. The model has memorised noise.</li>
+            <li><strong>Middle: the sweet spot.</strong> The best k is where <em>test</em> accuracy peaks, not training accuracy.</li>
+            <li><strong>Right side (large k): underfitting risk.</strong> The boundary becomes very smooth. With enough neighbours KNN drifts toward predicting the majority class everywhere.</li>
+            <li><strong>Why test can beat train here:</strong> the test set has only 21 points, so one point is worth almost 5%. Small test sets give noisy scores. That is why real projects use more data or cross-validation (<code>cross_val_score</code>).</li>
+          </ul>
+        </div>
         <div class="task">
           <h4><i class="bi bi-pencil-square"></i> Try this</h4>
           Turn on decision regions. Compare k = 1 with k = 15. Describe the shape of the boundary in each case. In the chart, what is the training accuracy at k = 1 and why is it always that value?
@@ -400,9 +418,9 @@ for name, m in models.items():
           <div class="sheet">
             <h4>Layout reminder</h4>
             <table class="cm-table mx-auto">
-              <tr><th></th><th>pred 0</th><th>pred 1</th></tr>
-              <tr><th>actual 0</th><td class="cm-cell cm-good" style="font-size:1rem!important">TN</td><td class="cm-cell cm-bad" style="font-size:1rem!important">FP</td></tr>
-              <tr><th>actual 1</th><td class="cm-cell cm-bad" style="font-size:1rem!important">FN</td><td class="cm-cell cm-good" style="font-size:1rem!important">TP</td></tr>
+              <tr><th></th><th>Predicted<br>not fraud (0)</th><th>Predicted<br>fraud (1)</th></tr>
+              <tr><th class="text-start">Actually<br>not fraud (0)</th><td class="cm-cell cm-good" style="font-size:1rem!important">TN<small>correctly cleared</small></td><td class="cm-cell cm-bad" style="font-size:1rem!important">FP<small>false alarm</small></td></tr>
+              <tr><th class="text-start">Actually<br>fraud (1)</th><td class="cm-cell cm-bad" style="font-size:1rem!important">FN<small>missed fraud</small></td><td class="cm-cell cm-good" style="font-size:1rem!important">TP<small>caught fraud</small></td></tr>
             </table>
           </div>
         </div>
@@ -411,6 +429,10 @@ for name, m in models.items():
       <div class="widget">
         <h3>Experiment: move the decision threshold</h3>
         <p class="text-muted-2 mb-3">A classifier gave 250 transactions a fraud probability. 25 are real fraud (10%). Anything at or above the threshold is flagged as fraud.</p>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6"><div class="sheet p-3 h-100"><strong>Actually not fraud (225 rows)</strong> is the true label: these are honest customers. The model gets them right as <strong>TN</strong> (let through) or wrong as <strong>FP</strong> (blocked by mistake, an angry customer).</div></div>
+          <div class="col-md-6"><div class="sheet p-3 h-100"><strong>Actually fraud (25 rows)</strong> is the true label: these are real thefts. The model gets them right as <strong>TP</strong> (caught) or wrong as <strong>FN</strong> (missed, the bank loses money).</div></div>
+        </div>
         <div class="row g-4 align-items-center">
           <div class="col-lg-5">
             <label class="form-label" for="thSlider">threshold = <strong id="thVal">0.50</strong></label>
@@ -420,10 +442,11 @@ for name, m in models.items():
               <button class="btn btn-sm btn-outline-ink" id="resetTh">Reset to 0.50</button>
             </div>
             <table class="cm-table">
-              <tr><th></th><th>pred 0</th><th>pred 1</th></tr>
-              <tr><th>actual 0</th><td class="cm-cell cm-good"><span id="cTN">0</span><small>TN</small></td><td class="cm-cell cm-bad"><span id="cFP">0</span><small>FP</small></td></tr>
-              <tr><th>actual 1</th><td class="cm-cell cm-bad"><span id="cFN">0</span><small>FN</small></td><td class="cm-cell cm-good"><span id="cTP">0</span><small>TP</small></td></tr>
+              <tr><th></th><th>Predicted<br>not fraud</th><th>Predicted<br>fraud</th></tr>
+              <tr><th class="text-start">Actually<br>not fraud<br><small class="text-muted-2 fw-normal">225 total</small></th><td class="cm-cell cm-good"><span id="cTN">0</span><small>TN · cleared</small></td><td class="cm-cell cm-bad"><span id="cFP">0</span><small>FP · false alarm</small></td></tr>
+              <tr><th class="text-start">Actually<br>fraud<br><small class="text-muted-2 fw-normal">25 total</small></th><td class="cm-cell cm-bad"><span id="cFN">0</span><small>FN · missed</small></td><td class="cm-cell cm-good"><span id="cTP">0</span><small>TP · caught</small></td></tr>
             </table>
+            <p class="small text-muted-2 mt-2 mb-0">Each row always adds up to the same total. Moving the threshold only moves transactions <em>sideways</em> between “predicted not fraud” and “predicted fraud”.</p>
           </div>
           <div class="col-lg-7">
             <div id="metricRows"></div>
@@ -639,7 +662,7 @@ function initKNN(){
   const cv=$("#knnCanvas");
   const place=(cx,cy)=>{const b=cv.getBoundingClientRect();query={x:(cx-b.left)/b.width,y:1-(cy-b.top)/b.height};drawKNN();};
   cv.addEventListener("click",e=>place(e.clientX,e.clientY));
-  $("#kSlider").addEventListener("input",()=>{$("#kVal").textContent=$("#kSlider").value;drawKNN();});
+  $("#kSlider").addEventListener("input",()=>{$("#kVal").textContent=$("#kSlider").value;drawKNN();markK();});
   $("#regionChk").addEventListener("change",drawKNN);
   addEventListener("resize",()=>{if(state.step===2){sizeKNN();}});
 }
@@ -671,6 +694,7 @@ function drawKNN(){
   $("#knnVotes").innerHTML=`<span class="legend-dot" style="background:var(--a)"></span>class 0: <strong>${res.votes[0]}</strong> &nbsp; <span class="legend-dot" style="background:var(--b)"></span>class 1: <strong>${res.votes[1]}</strong>`;
   $("#knnPred").innerHTML=`<span class="legend-dot" style="background:${res.pred?'var(--b)':'var(--a)'};width:1.1rem;height:1.1rem"></span>class ${res.pred}`;
 }
+let kData=null;
 function buildKChart(){
   if(!window.Chart||!knnPts.length)return;
   const idx=shuffle([...knnPts.keys()],mulberry32(11)), cut=Math.round(knnPts.length*.7);
@@ -679,13 +703,32 @@ function buildKChart(){
   for(let k=1;k<=25;k+=2){ks.push("k="+k);
     trA.push(+(tr.filter(p=>knnPredict(tr,p,k).pred===p.c).length/tr.length).toFixed(3));
     teA.push(+(te.filter(p=>knnPredict(tr,p,k).pred===p.c).length/te.length).toFixed(3));}
+  kData={ks,trA,teA};
   const INK=cssVar("--ink"),MUTED=cssVar("--muted"),GRID=cssVar("--grid");
+  const selIdx=()=>ks.indexOf("k="+$("#kSlider").value);
+  const big=c=>c.dataIndex===selIdx()?9:4;
+  const marker={id:"kMarker",afterDatasetsDraw(ch){const i=selIdx();if(i<0)return;
+    const x=ch.scales.x.getPixelForValue(i),{top,bottom}=ch.chartArea,c=ch.ctx;
+    c.save();c.strokeStyle=INK;c.lineWidth=2;c.setLineDash([6,5]);c.beginPath();c.moveTo(x,top);c.lineTo(x,bottom);c.stroke();
+    c.setLineDash([]);c.fillStyle=INK;c.font="600 12px 'IBM Plex Sans',sans-serif";c.textAlign="center";
+    c.fillText("your k",x,top-6);c.restore();}};
   if(kChart)kChart.destroy();
-  kChart=new Chart($("#kChart"),{type:"line",data:{labels:ks,datasets:[
-    {label:"Training accuracy",data:trA,borderColor:cssVar("--a"),backgroundColor:cssVar("--a"),tension:.25},
-    {label:"Test accuracy",data:teA,borderColor:cssVar("--b"),backgroundColor:cssVar("--b"),tension:.25}]},
-    options:{maintainAspectRatio:false,scales:{y:{min:.5,max:1,ticks:{color:MUTED},grid:{color:GRID}},x:{ticks:{color:MUTED},grid:{color:GRID}}},
-      plugins:{legend:{labels:{color:INK}}}}});
+  kChart=new Chart($("#kChart"),{type:"line",plugins:[marker],data:{labels:ks,datasets:[
+    {label:"Training accuracy",data:trA,borderColor:cssVar("--a"),backgroundColor:cssVar("--a"),tension:.25,pointRadius:big,pointHoverRadius:10},
+    {label:"Test accuracy",data:teA,borderColor:cssVar("--b"),backgroundColor:cssVar("--b"),tension:.25,pointRadius:big,pointHoverRadius:10}]},
+    options:{maintainAspectRatio:false,layout:{padding:{top:16}},
+      scales:{y:{min:.5,max:1.02,ticks:{color:MUTED},grid:{color:GRID},title:{display:true,text:"accuracy",color:MUTED}},
+              x:{ticks:{color:MUTED},grid:{color:GRID},title:{display:true,text:"number of neighbours (k)",color:MUTED}}},
+      plugins:{legend:{labels:{color:INK}},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${(c.parsed.y*100).toFixed(1)}%`}}}}});
+  markK();
+}
+function markK(){
+  if(!kData)return; const k=+$("#kSlider").value, i=kData.ks.indexOf("k="+k); if(i<0)return;
+  const tr=kData.trA[i], te=kData.teA[i], gap=tr-te;
+  $("#kNow").textContent=k; $("#kTrain").textContent=tr.toFixed(2); $("#kTest").textContent=te.toFixed(2);
+  $("#kGap").textContent=(gap>=0?"+":"")+gap.toFixed(2);
+  $("#kGap").style.color=gap>.1?"var(--bad)":"var(--ink)";
+  if(kChart)kChart.update("none");
 }
 
 /* =====================================================
