@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lab: Scikit-learn for Machine Learning</title>
+<meta name="description" content="Hands-on lab: train/test split, KNN, decision trees, logistic regression and evaluation metrics with scikit-learn.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧪</text></svg>">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F5F2; --grid:#DFE5E8; --ink:#1B2A41; --muted:#5B6878; --card:#FFFFFF; --line:#CBD4DB;
+  --a:#1F8A8A; --a-soft:rgba(31,138,138,.16); --b:#D99A00; --b-soft:rgba(217,154,0,.18);
+  --bad:#C8463D; --good:#2E8B57; --code-bg:#1B2A41; --code-fg:#E8EEF3;
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+[data-bs-theme="dark"]{
+  --paper:#121A26; --grid:#1C2635; --ink:#E6ECF2; --muted:#9AA8B8; --card:#18222F; --line:#2C3A4C;
+  --a:#3CC2C2; --a-soft:rgba(60,194,194,.18); --b:#F2B632; --b-soft:rgba(242,182,50,.2);
+  --bad:#F07167; --good:#5CC48B; --code-bg:#0C131D; --code-fg:#E8EEF3;
+}
+html,body{background:var(--paper);}
+body{
+  font-family:var(--font-body); color:var(--ink); line-height:1.6;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:28px 28px; background-attachment:fixed;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+h1,h2,h3,h4,.display-font{font-family:var(--font-display); letter-spacing:-.01em;}
+code,pre,textarea.code{font-family:var(--font-mono);}
+a{color:var(--a);}
+.text-muted-2{color:var(--muted)!important;}
+:focus-visible{outline:3px solid var(--b)!important; outline-offset:2px;}
+.sheet{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:1.75rem;}
+.prose{max-width:72ch;}
+.prose p{margin-bottom:.9rem;}
+
+/* Gate */
+#gate{min-height:100vh; display:flex; align-items:center; padding:2rem 1rem;}
+.gate-title{font-size:clamp(2.2rem,6vw,4.2rem); line-height:1.02; font-weight:800;}
+.gate-plot{width:100%; max-width:420px; aspect-ratio:1/1;}
+
+/* Top bar */
+.topbar{position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--line); padding-top:env(safe-area-inset-top,0px);}
+.student-chip{font-size:.85rem; border:1px solid var(--line); border-radius:999px; padding:.2rem .7rem; background:var(--card);}
+.steps{display:flex; gap:.4rem; overflow-x:auto; padding:.6rem 0;}
+.step-btn{flex:0 0 auto; border:1px solid var(--line); background:var(--card); color:var(--ink);
+  border-radius:4px; padding:.4rem .8rem; font-size:.9rem; display:flex; gap:.5rem; align-items:center;}
+.step-btn .n{font-family:var(--font-mono); font-size:.8rem; color:var(--muted);}
+.step-btn.active{background:var(--ink); color:var(--paper); border-color:var(--ink);}
+.step-btn.active .n{color:var(--paper); opacity:.7;}
+.step-btn.done .bi-check-circle-fill{color:var(--good);}
+.step-btn:disabled{opacity:.5;}
+.progress{height:6px; background:var(--grid);}
+.progress-bar{background:var(--a);}
+
+section.part{display:none;}
+section.part.show{display:block; animation:enter .35s ease-out;}
+@keyframes enter{from{opacity:0; transform:translateY(6px);}to{opacity:1; transform:none;}}
+@media (prefers-reduced-motion:reduce){section.part.show{animation:none;}}
+
+.part-head{border-left:6px solid var(--a); padding-left:1rem; margin:2rem 0 1.25rem;}
+.part-head h2{font-size:clamp(1.7rem,4vw,2.6rem); font-weight:800; margin:0;}
+.part-head p{color:var(--muted); margin:.25rem 0 0; max-width:65ch;}
+
+.callout{border-left:4px solid var(--b); background:var(--b-soft); padding:.8rem 1rem; border-radius:0 4px 4px 0; margin:1rem 0;}
+.callout.warn{border-color:var(--bad); background:color-mix(in srgb,var(--bad) 12%,transparent);}
+.task{border:2px dashed var(--a); border-radius:6px; padding:1rem 1.2rem; background:var(--a-soft); margin-top:1rem;}
+.task h4{font-size:1.05rem; margin-bottom:.4rem;}
+
+pre.snippet{background:var(--code-bg); color:var(--code-fg); padding:1rem; border-radius:6px; font-size:.86rem; overflow-x:auto; margin:0;}
+.kw{color:#7FD1D1}.st{color:#F2C46D}.cm{color:#8C9BAD; font-style:italic}.fn{color:#B7A6F2}
+
+/* Widgets */
+.widget{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:1.25rem; margin:1.25rem 0;}
+.widget h3{font-size:1.25rem; font-weight:700;}
+.tiles{display:grid; grid-template-columns:repeat(10,1fr); gap:6px; max-width:440px;}
+.tile{aspect-ratio:1/1; border-radius:3px; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:.7rem; font-weight:500; color:#fff; transition:transform .2s, box-shadow .2s;}
+.tile.c0{background:var(--a);} .tile.c1{background:var(--b); color:#1B2A41;}
+.tile.test{box-shadow:0 0 0 3px var(--card),0 0 0 5px var(--ink); transform:scale(.86);}
+.legend-dot{display:inline-block; width:.8rem; height:.8rem; border-radius:2px; vertical-align:-1px; margin-right:.3rem;}
+.stat{font-family:var(--font-display); font-size:1.6rem; font-weight:700; line-height:1.1;}
+.stat-label{font-size:.82rem; color:var(--muted);}
+canvas#knnCanvas{width:100%; height:360px; border:1px solid var(--line); border-radius:4px; cursor:crosshair; touch-action:manipulation; background:var(--card);}
+.cm-table{border-collapse:separate; border-spacing:6px; font-family:var(--font-mono);}
+.cm-table td,.cm-table th{text-align:center; padding:.35rem .5rem; font-size:.85rem;}
+.cm-cell{width:110px; height:84px; border-radius:4px; font-size:1.5rem!important; font-weight:500; color:var(--ink);}
+.cm-cell small{display:block; font-size:.7rem; color:var(--muted); font-family:var(--font-body);}
+.cm-good{background:color-mix(in srgb,var(--good) 22%,transparent);} .cm-bad{background:color-mix(in srgb,var(--bad) 20%,transparent);}
+.metric-row{display:grid; grid-template-columns:92px 1fr 58px; gap:.6rem; align-items:center; margin:.35rem 0; font-size:.92rem;}
+.metric-bar{height:12px; background:var(--grid); border-radius:2px; overflow:hidden;}
+.metric-bar span{display:block; height:100%; background:var(--a); transition:width .25s;}
+.form-range::-webkit-slider-thumb{background:var(--a);} .form-range::-moz-range-thumb{background:var(--a);}
+
+/* Python runner */
+.cell{border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:1rem 0; background:var(--card);}
+.cell-bar{display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; padding:.5rem .75rem; border-bottom:1px solid var(--line); font-size:.85rem;}
+.cell textarea.code{width:100%; min-height:200px; border:0; resize:vertical; background:var(--code-bg); color:var(--code-fg); padding:1rem; font-size:.86rem; line-height:1.55; tab-size:4; display:block;}
+.cell textarea.code:focus{outline:none; box-shadow:inset 0 0 0 2px var(--b);}
+.cell pre.out{margin:0; padding:.8rem 1rem; font-size:.83rem; min-height:2.5rem; max-height:320px; overflow:auto; white-space:pre-wrap; color:var(--ink); background:var(--paper);}
+.cell pre.out.err{color:var(--bad);}
+.btn-ink{background:var(--ink); color:var(--paper); border:0;}
+.btn-ink:hover{background:var(--a); color:#fff;}
+.btn-outline-ink{border:1px solid var(--ink); color:var(--ink); background:transparent;}
+.btn-outline-ink:hover{background:var(--ink); color:var(--paper);}
+
+/* Quiz */
+.q-card{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:1.1rem 1.25rem; margin-bottom:1rem;}
+.q-num{font-family:var(--font-mono); color:var(--muted); font-size:.85rem;}
+.q-text{font-weight:600; margin:.2rem 0 .7rem;}
+.opt{display:flex; gap:.7rem; align-items:flex-start; border:1px solid var(--line); border-radius:4px; padding:.55rem .8rem; margin-bottom:.45rem; cursor:pointer;}
+.opt:hover{border-color:var(--a);}
+.opt input{margin-top:.3rem;}
+.opt.picked{border-color:var(--a); background:var(--a-soft);}
+.opt.correct{border-color:var(--good); background:color-mix(in srgb,var(--good) 16%,transparent);}
+.opt.wrong{border-color:var(--bad); background:color-mix(in srgb,var(--bad) 14%,transparent);}
+.explain{font-size:.9rem; border-top:1px dashed var(--line); margin-top:.6rem; padding-top:.6rem; color:var(--muted);}
+.score-big{font-family:var(--font-display); font-weight:800; font-size:clamp(3.5rem,12vw,6rem); line-height:1;}
+.grade-badge{font-family:var(--font-display); font-weight:800; font-size:2rem; width:4rem; height:4rem; display:flex; align-items:center; justify-content:center; border:3px solid var(--ink); border-radius:50%;}
+.quiz-footer{position:sticky; bottom:0; background:color-mix(in srgb,var(--paper) 92%,transparent); backdrop-filter:blur(6px); border-top:1px solid var(--line); padding:.75rem 0 calc(.75rem + env(safe-area-inset-bottom,0px)); z-index:10;}
+
+footer{color:var(--muted); font-size:.85rem;}
+
+@media (max-width:576px){ .sheet{padding:1.2rem;} .cm-cell{width:80px; height:70px; font-size:1.2rem!important;} }
+
+@media print{
+  body{background:#fff!important; color:#000;}
+  body *{visibility:hidden;}
+  #resultCard, #resultCard *{visibility:visible;}
+  #resultCard{position:absolute; left:0; top:0; width:100%; border:1px solid #000;}
+  .no-print{display:none!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ STUDENT GATE ============ -->
+<main id="gate">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <p class="text-muted-2 mb-2"><i class="bi bi-cpu"></i> Data Science &amp; Analytics Lab</p>
+        <h1 class="gate-title mb-3">Scikit-learn for Machine Learning</h1>
+        <p class="lead prose mb-4">Split data, train three kinds of model through one API, and learn why 98% accuracy can mean your model is useless. Ends with a graded quiz.</p>
+        <form id="gateForm" class="sheet" novalidate>
+          <div class="mb-3">
+            <label for="sName" class="form-label fw-semibold">Full name</label>
+            <input type="text" class="form-control form-control-lg" id="sName" autocomplete="name" required minlength="3" maxlength="60">
+            <div class="invalid-feedback">Enter your full name (at least 3 letters).</div>
+          </div>
+          <div class="mb-3">
+            <label for="sRoll" class="form-label fw-semibold">Roll number</label>
+            <input type="text" class="form-control form-control-lg" id="sRoll" placeholder="e.g. 22CS045" required pattern="[A-Za-z0-9\-\/ ]{3,20}">
+            <div class="invalid-feedback">Enter your roll number (3–20 letters, digits, - or /).</div>
+          </div>
+          <button class="btn btn-ink btn-lg w-100" type="submit"><i class="bi bi-play-fill"></i> Start the lab</button>
+          <p class="small text-muted-2 mt-3 mb-0">Your name and roll number appear on your quiz result. Progress is saved in this browser.</p>
+        </form>
+      </div>
+      <div class="col-lg-6 d-none d-lg-flex justify-content-center">
+        <svg class="gate-plot" viewBox="0 0 400 400" role="img" aria-label="Scatter plot of two classes split by a decision boundary">
+          <rect x="20" y="20" width="360" height="360" fill="none" stroke="var(--line)"/>
+          <path d="M40 330 C 150 290, 230 160, 360 60" fill="none" stroke="var(--ink)" stroke-width="2.5" stroke-dasharray="8 6"/>
+          <g id="gateDots"></g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ============ LAB APP ============ -->
+<div id="app" class="d-none">
+  <header class="topbar">
+    <div class="container">
+      <div class="d-flex align-items-center justify-content-between gap-2 pt-2 flex-wrap">
+        <div class="display-font fw-bold">🧪 Scikit-learn Lab</div>
+        <div class="d-flex align-items-center gap-2">
+          <span class="student-chip"><i class="bi bi-person"></i> <span id="chipName"></span> <span class="text-muted-2" id="chipRoll"></span></span>
+          <button class="btn btn-sm btn-outline-ink" id="themeBtn" aria-label="Toggle dark mode"><i class="bi bi-moon-stars"></i></button>
+        </div>
+      </div>
+      <nav class="steps" id="steps" aria-label="Lab parts"></nav>
+      <div class="progress mb-2" role="progressbar" aria-label="Lab progress"><div class="progress-bar" id="progBar" style="width:0%"></div></div>
+    </div>
+  </header>
+
+  <main class="container py-3">
+
+    <!-- ===== OVERVIEW ===== -->
+    <section class="part" data-step="0">
+      <div class="part-head"><h2>Before you start</h2><p>What you will build and how this lab works.</p></div>
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <div class="sheet prose">
+            <p>Scikit-learn gives every model the same three verbs: <code>fit</code>, <code>predict</code> and <code>score</code>. Once you know them, swapping a linear regression for a decision tree is a one-line change. The hard part of machine learning is not calling the model. It is setting up an honest test and choosing a metric that tells the truth.</p>
+            <h4 class="mt-4">By the end of this lab you can</h4>
+            <ol>
+              <li>Split a dataset into training and test sets with <code>train_test_split</code>, and explain <code>test_size</code>, <code>random_state</code> and <code>stratify</code>.</li>
+              <li>Fit linear regression, k-nearest-neighbours, decision trees and logistic regression with the same API.</li>
+              <li>Spot overfitting by comparing training and test scores.</li>
+              <li>Read a confusion matrix and pick between accuracy, precision, recall and F1 on imbalanced data.</li>
+            </ol>
+            <h4 class="mt-4">How it works</h4>
+            <p>Work through the three parts in order. Each part has an interactive experiment, Python you can run right here in the browser, and a task. Press <em>Mark part complete</em> at the end of each part. The quiz unlocks after all three are complete.</p>
+            <div class="callout"><strong>Running Python in the browser:</strong> the first time you press <em>Run</em>, the page downloads Python and scikit-learn (about 30&nbsp;MB, 20–60 seconds). After that every run is instant. You can also copy the code into Jupyter or Colab.</div>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="sheet">
+            <h4>The uniform API</h4>
+            <pre class="snippet"><span class="cm"># the same pattern for every model</span>
+model = <span class="fn">SomeModel</span>(hyperparams)
+model.<span class="fn">fit</span>(X_train, y_train)   <span class="cm"># learn</span>
+y_pred = model.<span class="fn">predict</span>(X_test) <span class="cm"># use</span>
+model.<span class="fn">score</span>(X_test, y_test)    <span class="cm"># judge</span></pre>
+            <p class="small text-muted-2 mt-3 mb-0"><code>X</code> is a 2-D table of features (rows are samples). <code>y</code> is a 1-D array of labels or target values.</p>
+          </div>
+          <button class="btn btn-ink btn-lg w-100 mt-3" data-goto="1"><i class="bi bi-arrow-right-circle"></i> Begin Part 1</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PART 1 ===== -->
+    <section class="part" data-step="1">
+      <div class="part-head"><h2>Part 1 · The train/test split and a first model</h2><p>A model graded on the data it studied gets a fake grade. Hold some data back.</p></div>
+      <div class="sheet prose">
+        <p>If you test a model on the same rows it trained on, you measure memory, not learning. <code>train_test_split</code> shuffles the rows and sets a fraction aside as the test set. The model never sees those rows during <code>fit</code>, so its score on them estimates how it will do on new data.</p>
+        <p>Three arguments matter:</p>
+        <ul>
+          <li><code>test_size=0.2</code> keeps 20% of rows for testing. 20–30% is typical.</li>
+          <li><code>random_state=42</code> fixes the shuffle so you (and your teacher) get the same split every run.</li>
+          <li><code>stratify=y</code> keeps the class proportions the same in both sets. Essential when one class is rare.</li>
+        </ul>
+      </div>
+
+      <div class="widget">
+        <h3>Experiment: watch the split happen</h3>
+        <p class="text-muted-2 mb-3">40 samples: <span class="legend-dot" style="background:var(--a)"></span>32 of class 0 and <span class="legend-dot" style="background:var(--b)"></span>8 of class 1 (the rare class). Outlined, shrunken tiles go to the test set.</p>
+        <div class="row g-4 align-items-start">
+          <div class="col-md-6"><div class="tiles" id="tiles"></div></div>
+          <div class="col-md-6">
+            <label class="form-label" for="tsSlider">test_size = <strong id="tsVal">0.25</strong></label>
+            <input type="range" class="form-range" id="tsSlider" min="0.1" max="0.5" step="0.05" value="0.25">
+            <div class="d-flex gap-2 align-items-center my-2 flex-wrap">
+              <label for="rsInput" class="mb-0">random_state</label>
+              <input type="number" id="rsInput" class="form-control form-control-sm" style="width:90px" value="42" min="0" max="9999">
+              <button class="btn btn-sm btn-outline-ink" id="rsRand"><i class="bi bi-shuffle"></i> New seed</button>
+            </div>
+            <div class="form-check form-switch my-2">
+              <input class="form-check-input" type="checkbox" id="stratChk">
+              <label class="form-check-label" for="stratChk">stratify=y</label>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-6"><div class="stat" id="nTrain">0</div><div class="stat-label">training rows</div></div>
+              <div class="col-6"><div class="stat" id="nTest">0</div><div class="stat-label">test rows</div></div>
+              <div class="col-6"><div class="stat" id="pTrain">0%</div><div class="stat-label">class 1 in train</div></div>
+              <div class="col-6"><div class="stat" id="pTest">0%</div><div class="stat-label">class 1 in test</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="task">
+          <h4><i class="bi bi-pencil-square"></i> Try this</h4>
+          With <code>stratify</code> off, change the seed several times. Write down the lowest and highest share of class 1 you see in the test set. Then switch <code>stratify</code> on. What happens to that share, and why does it matter if class 1 were “fraud” or “disease”?
+        </div>
+      </div>
+
+      <div class="sheet prose">
+        <h4>A first model: linear regression</h4>
+        <p>When the target is a number (house price, blood-sugar level), use regression. <code>LinearRegression</code> fits a weighted sum of features. Its <code>score</code> returns R², where 1.0 is perfect and 0 means “no better than predicting the mean”.</p>
+      </div>
+      <div class="cell" data-cell>
+        <div class="cell-bar"><span class="fw-semibold me-auto"><i class="bi bi-filetype-py"></i> Cell 1 · Split and fit linear regression</span></div>
+<textarea class="code" spellcheck="false">from sklearn.datasets import load_diabetes
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error
+
+X, y = load_diabetes(return_X_y=True)
+print("Full data:", X.shape)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42)
+print("Train:", X_train.shape, " Test:", X_test.shape)
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+print("R² on train:", round(model.score(X_train, y_train), 3))
+print("R² on test :", round(model.score(X_test, y_test), 3))
+print("MAE on test:", round(mean_absolute_error(y_test, model.predict(X_test)), 2))</textarea>
+      </div>
+      <div class="task">
+        <h4><i class="bi bi-pencil-square"></i> Your turn</h4>
+        Change <code>random_state</code> to 0, 7 and 99 and rerun. Record the test R² each time. Why does the score move even though the model and data did not change? What does that suggest about trusting a single split?
+      </div>
+      <div class="callout warn mt-3"><strong>Data leakage:</strong> always split <em>first</em>, then fit any scaler or encoder on <code>X_train</code> only. Fitting on the full data lets test information leak into training and inflates your score.</div>
+      <div class="text-end my-4"><button class="btn btn-ink btn-lg" data-complete="1"><i class="bi bi-check2-circle"></i> Mark part complete</button></div>
+    </section>
+
+    <!-- ===== PART 2 ===== -->
+    <section class="part" data-step="2">
+      <div class="part-head"><h2>Part 2 · Classification: KNN, decision trees and logistic regression</h2><p>Three very different ideas, one identical API.</p></div>
+      <div class="row g-3">
+        <div class="col-md-4"><div class="sheet h-100"><h4>k-nearest neighbours</h4><p class="mb-0">Stores the training data. To classify a new point, finds the <em>k</em> closest training points and takes a majority vote. Distance-based, so features must be on similar scales.</p></div></div>
+        <div class="col-md-4"><div class="sheet h-100"><h4>Decision tree</h4><p class="mb-0">Learns a sequence of yes/no questions (“petal length &lt; 2.45?”). Easy to read, no scaling needed, but a deep tree memorises noise. Limit it with <code>max_depth</code>.</p></div></div>
+        <div class="col-md-4"><div class="sheet h-100"><h4>Logistic regression</h4><p class="mb-0">Despite the name, a classifier. Fits a linear boundary and outputs a probability with <code>predict_proba</code>. A strong, fast baseline.</p></div></div>
+      </div>
+
+      <div class="widget">
+        <h3>Experiment: k-nearest neighbours by hand</h3>
+        <p class="text-muted-2 mb-3">Click or tap anywhere on the plot to place a new point. Lines show its <em>k</em> nearest neighbours; the vote decides the class.</p>
+        <div class="row g-4">
+          <div class="col-lg-8"><canvas id="knnCanvas" aria-label="Interactive KNN scatter plot"></canvas></div>
+          <div class="col-lg-4">
+            <label class="form-label" for="kSlider">k = <strong id="kVal">5</strong></label>
+            <input type="range" class="form-range" id="kSlider" min="1" max="15" step="2" value="5">
+            <div class="form-check form-switch my-2">
+              <input class="form-check-input" type="checkbox" id="regionChk">
+              <label class="form-check-label" for="regionChk">Show decision regions</label>
+            </div>
+            <div class="sheet mt-3 p-3">
+              <div class="stat-label">Votes</div>
+              <div id="knnVotes" class="mb-2"></div>
+              <div class="stat-label">Prediction</div>
+              <div class="stat" id="knnPred">–</div>
+            </div>
+          </div>
+        </div>
+        <h4 class="mt-4 h5">Overfitting check: train vs test accuracy as k changes</h4>
+        <p class="text-muted-2 small">Computed live on the points above, split 70/30.</p>
+        <div style="position:relative; height:260px"><canvas id="kChart"></canvas></div>
+        <div class="task">
+          <h4><i class="bi bi-pencil-square"></i> Try this</h4>
+          Turn on decision regions. Compare k = 1 with k = 15. Describe the shape of the boundary in each case. In the chart, what is the training accuracy at k = 1 and why is it always that value?
+        </div>
+      </div>
+
+      <div class="cell" data-cell>
+        <div class="cell-bar"><span class="fw-semibold me-auto"><i class="bi bi-filetype-py"></i> Cell 2 · Three classifiers, one loop</span></div>
+<textarea class="code" spellcheck="false">from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+
+X, y = load_breast_cancer(return_X_y=True)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42, stratify=y)
+
+models = {
+    "KNN (k=5, scaled)": make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5)),
+    "Decision tree (no limit)": DecisionTreeClassifier(random_state=42),
+    "Decision tree (depth 3)": DecisionTreeClassifier(max_depth=3, random_state=42),
+    "Logistic regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000)),
+}
+
+print(f"{'model':28s} {'train':>7s} {'test':>7s}")
+for name, m in models.items():
+    m.fit(X_train, y_train)            # same verb for every model
+    tr = m.score(X_train, y_train)
+    te = m.score(X_test, y_test)
+    print(f"{name:28s} {tr:7.3f} {te:7.3f}")</textarea>
+      </div>
+      <div class="task">
+        <h4><i class="bi bi-pencil-square"></i> Your turn</h4>
+        <ol class="mb-0">
+          <li>Which model shows the biggest gap between train and test accuracy? What is that gap called?</li>
+          <li>Remove <code>StandardScaler()</code> from the KNN pipeline (use <code>KNeighborsClassifier(n_neighbors=5)</code> alone). How much does test accuracy drop, and why does KNN care about scaling when the decision tree does not?</li>
+          <li>Add <code>"KNN (k=1)"</code> to the dictionary and compare.</li>
+        </ol>
+      </div>
+      <div class="text-end my-4"><button class="btn btn-ink btn-lg" data-complete="2"><i class="bi bi-check2-circle"></i> Mark part complete</button></div>
+    </section>
+
+    <!-- ===== PART 3 ===== -->
+    <section class="part" data-step="3">
+      <div class="part-head"><h2>Part 3 · Evaluation: the confusion matrix and the right metrics</h2><p>Accuracy counts correct answers. It cannot tell which mistakes you made.</p></div>
+      <div class="row g-4">
+        <div class="col-lg-7">
+          <div class="sheet prose">
+            <p>Picture a fraud detector where 1 in 10 transactions is fraud. A “model” that always says <em>not fraud</em> scores 90% accuracy and catches zero fraud. The confusion matrix exposes this by counting four outcomes separately.</p>
+            <p>In scikit-learn, <code>confusion_matrix(y_true, y_pred)</code> puts <strong>actual classes in rows</strong> and <strong>predicted classes in columns</strong>. For binary labels 0/1 it is <code>[[TN, FP], [FN, TP]]</code>.</p>
+            <ul>
+              <li><strong>Precision</strong> = TP / (TP + FP). Of everything flagged positive, how much was right? Matters when false alarms are costly (spam filter deleting real email).</li>
+              <li><strong>Recall</strong> = TP / (TP + FN). Of all real positives, how many did we catch? Matters when misses are costly (cancer screening).</li>
+              <li><strong>F1</strong> = harmonic mean of precision and recall. High only when both are high.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="col-lg-5">
+          <div class="sheet">
+            <h4>Layout reminder</h4>
+            <table class="cm-table mx-auto">
+              <tr><th></th><th>pred 0</th><th>pred 1</th></tr>
+              <tr><th>actual 0</th><td class="cm-cell cm-good" style="font-size:1rem!important">TN</td><td class="cm-cell cm-bad" style="font-size:1rem!important">FP</td></tr>
+              <tr><th>actual 1</th><td class="cm-cell cm-bad" style="font-size:1rem!important">FN</td><td class="cm-cell cm-good" style="font-size:1rem!important">TP</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="widget">
+        <h3>Experiment: move the decision threshold</h3>
+        <p class="text-muted-2 mb-3">A classifier gave 250 transactions a fraud probability. 25 are real fraud (10%). Anything at or above the threshold is flagged as fraud.</p>
+        <div class="row g-4 align-items-center">
+          <div class="col-lg-5">
+            <label class="form-label" for="thSlider">threshold = <strong id="thVal">0.50</strong></label>
+            <input type="range" class="form-range" id="thSlider" min="0" max="1" step="0.01" value="0.5">
+            <div class="d-flex gap-2 flex-wrap mb-3">
+              <button class="btn btn-sm btn-outline-ink" id="baselineBtn"><i class="bi bi-slash-circle"></i> Always predict “not fraud”</button>
+              <button class="btn btn-sm btn-outline-ink" id="resetTh">Reset to 0.50</button>
+            </div>
+            <table class="cm-table">
+              <tr><th></th><th>pred 0</th><th>pred 1</th></tr>
+              <tr><th>actual 0</th><td class="cm-cell cm-good"><span id="cTN">0</span><small>TN</small></td><td class="cm-cell cm-bad"><span id="cFP">0</span><small>FP</small></td></tr>
+              <tr><th>actual 1</th><td class="cm-cell cm-bad"><span id="cFN">0</span><small>FN</small></td><td class="cm-cell cm-good"><span id="cTP">0</span><small>TP</small></td></tr>
+            </table>
+          </div>
+          <div class="col-lg-7">
+            <div id="metricRows"></div>
+            <p class="small text-muted-2 mt-2 mb-0" id="metricNote"></p>
+          </div>
+        </div>
+        <div class="task">
+          <h4><i class="bi bi-pencil-square"></i> Try this</h4>
+          <ol class="mb-0">
+            <li>Press <em>Always predict “not fraud”</em>. Record accuracy and recall. Would you deploy this model?</li>
+            <li>Find a threshold where recall is at least 0.90. What did precision do?</li>
+            <li>Find the threshold that gives the highest F1. Write it down.</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="cell" data-cell>
+        <div class="cell-bar"><span class="fw-semibold me-auto"><i class="bi bi-filetype-py"></i> Cell 3 · Accuracy lies on imbalanced data</span></div>
+<textarea class="code" spellcheck="false">from sklearn.datasets import make_classification
+from sklearn.model_selection import train_test_split
+from sklearn.dummy import DummyClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (accuracy_score, confusion_matrix,
+                             classification_report, recall_score)
+
+# 95% class 0, 5% class 1
+X, y = make_classification(n_samples=2000, n_features=10, n_informative=4,
+                           weights=[0.95, 0.05], random_state=0)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=0, stratify=y)
+
+dummy = DummyClassifier(strategy="most_frequent").fit(X_train, y_train)
+d_pred = dummy.predict(X_test)
+print("Dummy accuracy:", round(accuracy_score(y_test, d_pred), 3))
+print("Dummy recall  :", recall_score(y_test, d_pred))
+print(confusion_matrix(y_test, d_pred), "\n")
+
+for cw in [None, "balanced"]:
+    clf = LogisticRegression(class_weight=cw, max_iter=1000).fit(X_train, y_train)
+    pred = clf.predict(X_test)
+    print(f"--- LogisticRegression(class_weight={cw}) ---")
+    print(confusion_matrix(y_test, pred))
+    print(classification_report(y_test, pred, digits=3, zero_division=0))</textarea>
+      </div>
+      <div class="task">
+        <h4><i class="bi bi-pencil-square"></i> Your turn</h4>
+        <ol class="mb-0">
+          <li>Write the dummy model’s confusion matrix. Which cell holds all the fraud cases?</li>
+          <li>Compare recall for class 1 with and without <code>class_weight="balanced"</code>. What did you trade to get it?</li>
+          <li>For a hospital screening test, which metric would you report first, and why?</li>
+        </ol>
+      </div>
+      <div class="text-end my-4"><button class="btn btn-ink btn-lg" data-complete="3"><i class="bi bi-check2-circle"></i> Mark part complete</button></div>
+    </section>
+
+    <!-- ===== QUIZ ===== -->
+    <section class="part" data-step="4">
+      <div class="part-head"><h2>Quiz</h2><p id="quizIntro">Answer every question, then submit. Each correct answer is worth 1 mark.</p></div>
+      <div id="quizLocked" class="sheet text-center d-none">
+        <i class="bi bi-lock" style="font-size:2.5rem"></i>
+        <h4 class="mt-2">Finish all three parts first</h4>
+        <p class="text-muted-2">Press <em>Mark part complete</em> at the end of each part to unlock the quiz.</p>
+      </div>
+      <form id="quizForm" class="d-none"></form>
+      <div id="quizFooter" class="quiz-footer d-none">
+        <div class="d-flex justify-content-between align-items-center gap-2">
+          <span><strong id="answeredCount">0</strong> of <span id="totalCount">0</span> answered</span>
+          <button class="btn btn-ink btn-lg" id="submitQuiz" disabled><i class="bi bi-send-check"></i> Submit answers</button>
+        </div>
+      </div>
+      <div id="resultWrap" class="d-none">
+        <div class="sheet mb-4" id="resultCard">
+          <div class="d-flex justify-content-between flex-wrap gap-3 align-items-start">
+            <div>
+              <div class="text-muted-2">Lab result · Scikit-learn for Machine Learning</div>
+              <h3 class="mt-1 mb-0" id="rName"></h3>
+              <div>Roll no. <strong id="rRoll"></strong></div>
+              <div class="small text-muted-2" id="rDate"></div>
+            </div>
+            <div class="grade-badge" id="rGrade">A</div>
+          </div>
+          <div class="d-flex align-items-end gap-3 mt-3 flex-wrap">
+            <div class="score-big" id="rScore">0/0</div>
+            <div class="pb-2"><div class="stat" id="rPct">0%</div><div class="stat-label" id="rTime"></div></div>
+          </div>
+          <p class="mt-3 mb-0" id="rMsg"></p>
+          <div class="d-flex gap-2 mt-3 flex-wrap no-print">
+            <button class="btn btn-ink" id="printBtn"><i class="bi bi-printer"></i> Print or save as PDF</button>
+            <button class="btn btn-outline-ink" id="retakeBtn"><i class="bi bi-arrow-repeat"></i> Retake quiz</button>
+          </div>
+          <p class="small text-muted-2 mt-2 mb-0 no-print" id="submitStatus"></p>
+        </div>
+        <h4 class="mb-3">Review your answers</h4>
+        <div id="reviewList"></div>
+      </div>
+    </section>
+
+  </main>
+  <footer class="container py-4 border-top" style="border-color:var(--line)!important">
+    Scikit-learn lab · <button class="btn btn-link btn-sm p-0 align-baseline" id="resetAll">Not you? Start over</button>
+  </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+/* =====================================================
+   CONFIGURATION — edit these for your class
+   ===================================================== */
+const CONFIG = {
+  allowRetake: false,       // true lets students retake; false shows their first result
+  questionsPerAttempt: 15,  // drawn at random from the bank below
+  passPercent: 50,
+  // Optional: paste a Google Apps Script web-app URL to collect results automatically.
+  // Leave empty to rely on printed/PDF results.
+  submitUrl: ""
+};
+const STORE_KEY = "sklearnLab_v1";
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function gauss(rng){let u=0,v=0;while(u===0)u=rng();while(v===0)v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function shuffle(arr,rng){const a=arr.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function load(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||{};}catch(e){return {};}}
+function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(e){}}
+let state = load();
+state.completed = state.completed || [];
+
+/* ---------- theme ---------- */
+function applyTheme(t){document.documentElement.setAttribute("data-bs-theme",t);$("#themeBtn").innerHTML=t==="dark"?'<i class="bi bi-sun"></i>':'<i class="bi bi-moon-stars"></i>';}
+applyTheme(state.theme || (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"));
+$("#themeBtn").onclick=()=>{state.theme=document.documentElement.getAttribute("data-bs-theme")==="dark"?"light":"dark";applyTheme(state.theme);save();drawKNN();buildKChart();};
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* ---------- gate decoration ---------- */
+(function(){const r=mulberry32(7);let h="";for(let i=0;i<46;i++){const c=i%2;const cx=c?250+gauss(r)*55:150+gauss(r)*55;const cy=c?140+gauss(r)*55:260+gauss(r)*55;
+ if(cx<30||cx>370||cy<30||cy>370)continue;h+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="7" fill="${c?'var(--b)':'var(--a)'}" opacity=".9"/>`;}
+ $("#gateDots").innerHTML=h;})();
+
+/* ---------- gate ---------- */
+$("#gateForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const f=e.target; const name=$("#sName"), roll=$("#sRoll");
+  name.value=name.value.replace(/\s+/g," ").trim(); roll.value=roll.value.trim().toUpperCase();
+  if(!f.checkValidity()){f.classList.add("was-validated");return;}
+  state.name=name.value; state.roll=roll.value; state.started=state.started||Date.now(); save(); enterApp();
+});
+function enterApp(){
+  $("#gate").classList.add("d-none"); $("#app").classList.remove("d-none");
+  $("#chipName").textContent=state.name; $("#chipRoll").textContent="· "+state.roll;
+  buildSteps(); go(state.step ?? 0); initSplit(); initKNN(); initThreshold(); initCells();
+}
+$("#resetAll").onclick=()=>{if(confirm("This clears your name, progress and quiz result in this browser. Continue?")){localStorage.removeItem(STORE_KEY);location.reload();}};
+
+/* ---------- steps ---------- */
+const STEPS=["Overview","Train/test split","Classification","Evaluation","Quiz"];
+function buildSteps(){
+  $("#steps").innerHTML=STEPS.map((s,i)=>{
+    const done=state.completed.includes(i)||(i===4&&state.result);
+    return `<button class="step-btn ${done?'done':''}" data-goto="${i}"><span class="n">${i===0?'·':i===4?'?':i}</span>${s}${done?' <i class="bi bi-check-circle-fill"></i>':''}</button>`;
+  }).join("");
+  $("#progBar").style.width=(state.completed.length/3*100)+"%";
+}
+function go(i){
+  state.step=i; save();
+  $$("section.part").forEach(s=>s.classList.toggle("show",+s.dataset.step===i));
+  $$(".step-btn").forEach(b=>b.classList.toggle("active",+b.dataset.goto===i));
+  if(i===2) setTimeout(()=>{sizeKNN();buildKChart();},30);
+  if(i===4) showQuiz();
+  window.scrollTo({top:0,behavior:"instant"});
+}
+document.addEventListener("click",e=>{
+  const g=e.target.closest("[data-goto]"); if(g){go(+g.dataset.goto);return;}
+  const c=e.target.closest("[data-complete]"); if(c){const n=+c.dataset.complete;
+    if(!state.completed.includes(n))state.completed.push(n); save(); buildSteps(); go(Math.min(n+1,4));}
+});
+
+/* =====================================================
+   PART 1 — split visualiser
+   ===================================================== */
+function initSplit(){
+  const labels=[];for(let i=0;i<40;i++)labels.push(i%5===4?1:0); // 32 vs 8
+  const render=()=>{
+    const ts=+$("#tsSlider").value, seed=+$("#rsInput").value||0, strat=$("#stratChk").checked;
+    $("#tsVal").textContent=ts.toFixed(2);
+    const rng=mulberry32(seed+1); let test=new Set();
+    if(strat){[0,1].forEach(c=>{const idx=labels.map((l,i)=>l===c?i:-1).filter(i=>i>=0);
+        shuffle(idx,rng).slice(0,Math.round(idx.length*ts)).forEach(i=>test.add(i));});}
+    else{shuffle([...labels.keys()],rng).slice(0,Math.round(40*ts)).forEach(i=>test.add(i));}
+    $("#tiles").innerHTML=labels.map((l,i)=>`<div class="tile c${l} ${test.has(i)?'test':''}" title="sample ${i}, class ${l}${test.has(i)?', test':', train'}">${test.has(i)?'T':''}</div>`).join("");
+    const tr=labels.filter((_,i)=>!test.has(i)), te=labels.filter((_,i)=>test.has(i));
+    const pct=a=>a.length?Math.round(a.filter(x=>x===1).length/a.length*100)+"%":"–";
+    $("#nTrain").textContent=tr.length; $("#nTest").textContent=te.length; $("#pTrain").textContent=pct(tr); $("#pTest").textContent=pct(te);
+  };
+  ["#tsSlider","#rsInput","#stratChk"].forEach(s=>$(s).addEventListener("input",render));
+  $("#rsRand").onclick=()=>{$("#rsInput").value=Math.floor(Math.random()*1000);render();};
+  render();
+}
+
+/* =====================================================
+   PART 2 — KNN canvas + overfitting chart
+   ===================================================== */
+let knnPts=[], query={x:.5,y:.5}, knnInit=false, kChart=null;
+function initKNN(){
+  if(knnInit)return; knnInit=true;
+  const r=mulberry32(2026);
+  for(let i=0;i<35;i++)knnPts.push({x:.36+gauss(r)*.14,y:.6+gauss(r)*.14,c:0});
+  for(let i=0;i<35;i++)knnPts.push({x:.62+gauss(r)*.14,y:.4+gauss(r)*.14,c:1});
+  knnPts=knnPts.map(p=>({x:Math.min(.97,Math.max(.03,p.x)),y:Math.min(.97,Math.max(.03,p.y)),c:p.c}));
+  const cv=$("#knnCanvas");
+  const place=(cx,cy)=>{const b=cv.getBoundingClientRect();query={x:(cx-b.left)/b.width,y:1-(cy-b.top)/b.height};drawKNN();};
+  cv.addEventListener("click",e=>place(e.clientX,e.clientY));
+  $("#kSlider").addEventListener("input",()=>{$("#kVal").textContent=$("#kSlider").value;drawKNN();});
+  $("#regionChk").addEventListener("change",drawKNN);
+  addEventListener("resize",()=>{if(state.step===2){sizeKNN();}});
+}
+function knnPredict(pts,q,k){
+  const d=pts.map(p=>({p,d:(p.x-q.x)**2+(p.y-q.y)**2})).sort((a,b)=>a.d-b.d).slice(0,k);
+  const v=[0,0];d.forEach(o=>v[o.p.c]++);return {nb:d.map(o=>o.p),votes:v,pred:v[1]>v[0]?1:0};
+}
+function sizeKNN(){const cv=$("#knnCanvas");const dpr=devicePixelRatio||1;cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr;drawKNN();}
+function drawKNN(){
+  const cv=$("#knnCanvas"); if(!cv||!cv.width)return;
+  const ctx=cv.getContext("2d"), W=cv.width, H=cv.height, dpr=devicePixelRatio||1, k=+$("#kSlider").value;
+  const A=cssVar("--a"),B=cssVar("--b"),INK=cssVar("--ink"),CARD=cssVar("--card"),GRID=cssVar("--grid");
+  const X=x=>x*W, Y=y=>(1-y)*H;
+  ctx.fillStyle=CARD;ctx.fillRect(0,0,W,H);
+  if($("#regionChk").checked){const s=10*dpr;ctx.globalAlpha=.18;
+    for(let px=0;px<W;px+=s)for(let py=0;py<H;py+=s){const p=knnPredict(knnPts,{x:(px+s/2)/W,y:1-(py+s/2)/H},k).pred;ctx.fillStyle=p?B:A;ctx.fillRect(px,py,s,s);}
+    ctx.globalAlpha=1;}
+  else{ctx.strokeStyle=GRID;ctx.lineWidth=1;for(let i=1;i<10;i++){ctx.beginPath();ctx.moveTo(i*W/10,0);ctx.lineTo(i*W/10,H);ctx.moveTo(0,i*H/10);ctx.lineTo(W,i*H/10);ctx.stroke();}}
+  const res=knnPredict(knnPts,query,k);
+  ctx.strokeStyle=INK;ctx.lineWidth=1.5*dpr;ctx.setLineDash([4*dpr,4*dpr]);
+  res.nb.forEach(p=>{ctx.beginPath();ctx.moveTo(X(query.x),Y(query.y));ctx.lineTo(X(p.x),Y(p.y));ctx.stroke();});
+  ctx.setLineDash([]);
+  knnPts.forEach(p=>{ctx.beginPath();ctx.arc(X(p.x),Y(p.y),6*dpr,0,7);ctx.fillStyle=p.c?B:A;ctx.fill();
+    if(res.nb.includes(p)){ctx.lineWidth=2.5*dpr;ctx.strokeStyle=INK;ctx.stroke();}});
+  // query star
+  const qx=X(query.x),qy=Y(query.y),R=13*dpr;ctx.beginPath();
+  for(let i=0;i<10;i++){const r=i%2?R*.45:R,a=-Math.PI/2+i*Math.PI/5;ctx.lineTo(qx+r*Math.cos(a),qy+r*Math.sin(a));}
+  ctx.closePath();ctx.fillStyle=res.pred?B:A;ctx.fill();ctx.lineWidth=2*dpr;ctx.strokeStyle=INK;ctx.stroke();
+  $("#knnVotes").innerHTML=`<span class="legend-dot" style="background:var(--a)"></span>class 0: <strong>${res.votes[0]}</strong> &nbsp; <span class="legend-dot" style="background:var(--b)"></span>class 1: <strong>${res.votes[1]}</strong>`;
+  $("#knnPred").innerHTML=`<span class="legend-dot" style="background:${res.pred?'var(--b)':'var(--a)'};width:1.1rem;height:1.1rem"></span>class ${res.pred}`;
+}
+function buildKChart(){
+  if(!window.Chart||!knnPts.length)return;
+  const idx=shuffle([...knnPts.keys()],mulberry32(11)), cut=Math.round(knnPts.length*.7);
+  const tr=idx.slice(0,cut).map(i=>knnPts[i]), te=idx.slice(cut).map(i=>knnPts[i]);
+  const ks=[],trA=[],teA=[];
+  for(let k=1;k<=25;k+=2){ks.push("k="+k);
+    trA.push(+(tr.filter(p=>knnPredict(tr,p,k).pred===p.c).length/tr.length).toFixed(3));
+    teA.push(+(te.filter(p=>knnPredict(tr,p,k).pred===p.c).length/te.length).toFixed(3));}
+  const INK=cssVar("--ink"),MUTED=cssVar("--muted"),GRID=cssVar("--grid");
+  if(kChart)kChart.destroy();
+  kChart=new Chart($("#kChart"),{type:"line",data:{labels:ks,datasets:[
+    {label:"Training accuracy",data:trA,borderColor:cssVar("--a"),backgroundColor:cssVar("--a"),tension:.25},
+    {label:"Test accuracy",data:teA,borderColor:cssVar("--b"),backgroundColor:cssVar("--b"),tension:.25}]},
+    options:{maintainAspectRatio:false,scales:{y:{min:.5,max:1,ticks:{color:MUTED},grid:{color:GRID}},x:{ticks:{color:MUTED},grid:{color:GRID}}},
+      plugins:{legend:{labels:{color:INK}}}}});
+}
+
+/* =====================================================
+   PART 3 — threshold & confusion matrix
+   ===================================================== */
+let scores=[];
+function initThreshold(){
+  const r=mulberry32(99);
+  for(let i=0;i<25;i++)scores.push({y:1,s:Math.min(.99,Math.max(.01,.68+gauss(r)*.16))});
+  for(let i=0;i<225;i++)scores.push({y:0,s:Math.min(.99,Math.max(.01,.3+gauss(r)*.15))});
+  const M=["Accuracy","Precision","Recall","F1"];
+  $("#metricRows").innerHTML=M.map(m=>`<div class="metric-row"><span>${m}</span><div class="metric-bar"><span id="b${m}"></span></div><strong id="v${m}" class="text-end font-monospace">0</strong></div>`).join("");
+  const render=(th)=>{
+    let TP=0,FP=0,FN=0,TN=0;scores.forEach(o=>{const p=o.s>=th?1:0;if(p&&o.y)TP++;else if(p)FP++;else if(o.y)FN++;else TN++;});
+    const acc=(TP+TN)/250, prec=TP+FP?TP/(TP+FP):0, rec=TP/(TP+FN), f1=prec+rec?2*prec*rec/(prec+rec):0;
+    $("#cTP").textContent=TP;$("#cFP").textContent=FP;$("#cFN").textContent=FN;$("#cTN").textContent=TN;
+    [["Accuracy",acc],["Precision",prec],["Recall",rec],["F1",f1]].forEach(([m,v])=>{$("#b"+m).style.width=(v*100)+"%";$("#v"+m).textContent=v.toFixed(2);});
+    $("#thVal").textContent=th>1?"never flag":th.toFixed(2);
+    $("#metricNote").textContent=TP+FP===0?"No positives predicted, so precision is undefined. scikit-learn reports 0 and warns (silence it with zero_division=0).":
+      `Flagged ${TP+FP} transactions; caught ${TP} of 25 frauds; ${FP} false alarms.`;
+  };
+  $("#thSlider").addEventListener("input",e=>render(+e.target.value));
+  $("#baselineBtn").onclick=()=>{$("#thSlider").value=1;render(1.01);};
+  $("#resetTh").onclick=()=>{$("#thSlider").value=.5;render(.5);};
+  render(.5);
+}
+
+/* =====================================================
+   In-browser Python (Pyodide)
+   ===================================================== */
+let pyodide=null, pyLoading=null;
+function loadPy(statusEls){
+  if(pyodide)return Promise.resolve(pyodide);
+  if(pyLoading)return pyLoading;
+  const setAll=t=>statusEls().forEach(el=>el.textContent=t);
+  pyLoading=new Promise((res,rej)=>{
+    setAll("Downloading Python…");
+    const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
+    s.onload=async()=>{try{const py=await loadPyodide();setAll("Installing scikit-learn…");
+        await py.loadPackage(["scikit-learn"]);pyodide=py;setAll("Python ready");res(py);}catch(e){pyLoading=null;setAll("Load failed");rej(e);}};
+    s.onerror=()=>{pyLoading=null;setAll("Load failed");rej(new Error("Could not download Python. Check your internet connection and try again."));};
+    document.head.appendChild(s);
+  });
+  return pyLoading;
+}
+function initCells(){
+  $$("[data-cell]").forEach(cell=>{
+    if(cell.dataset.ready)return; cell.dataset.ready=1;
+    const ta=cell.querySelector("textarea"), orig=ta.value, bar=cell.querySelector(".cell-bar");
+    bar.insertAdjacentHTML("beforeend",`<span class="small text-muted-2 py-status">${pyodide?'Python ready':'Python not loaded'}</span>
+      <button class="btn btn-sm btn-ink run"><i class="bi bi-play-fill"></i> Run</button>
+      <button class="btn btn-sm btn-outline-ink copy" aria-label="Copy code"><i class="bi bi-clipboard"></i> Copy</button>
+      <button class="btn btn-sm btn-outline-ink reset" aria-label="Reset code"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>`);
+    cell.insertAdjacentHTML("beforeend",`<pre class="out" aria-live="polite">Press Run to execute this code.</pre>`);
+    const out=cell.querySelector(".out"), run=cell.querySelector(".run");
+    ta.addEventListener("keydown",e=>{
+      if(e.key==="Tab"){e.preventDefault();const s=ta.selectionStart;ta.setRangeText("    ",s,ta.selectionEnd,"end");}
+      if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();run.click();}
+    });
+    cell.querySelector(".copy").onclick=async e=>{try{await navigator.clipboard.writeText(ta.value);e.currentTarget.innerHTML='<i class="bi bi-check2"></i> Copied';}catch(_){ta.select();}};
+    cell.querySelector(".reset").onclick=()=>{ta.value=orig;out.textContent="Code reset.";out.classList.remove("err");};
+    run.onclick=async()=>{
+      run.disabled=true;out.classList.remove("err");out.textContent=pyodide?"Running…":"Loading Python and scikit-learn for the first time. This takes 20–60 seconds…";
+      try{
+        const py=await loadPy(()=>$$(".py-status"));
+        let buf="";py.setStdout({batched:s=>buf+=s+"\n"});py.setStderr({batched:s=>buf+=s+"\n"});
+        await py.runPythonAsync(ta.value);
+        out.textContent=buf||"(finished, no output)";
+      }catch(e){out.classList.add("err");out.textContent=String(e.message||e).split("\n").slice(-8).join("\n");}
+      run.disabled=false;
+    };
+  });
+}
+
+/* =====================================================
+   QUIZ
+   ===================================================== */
+const BANK=[
+ {q:"Why do we evaluate a model on a test set it never saw during training?",o:["To make training faster","To estimate how well it will perform on new, unseen data","Because scikit-learn requires two datasets","To increase training accuracy"],a:1,e:"Scoring on training data measures memorisation. Held-out data simulates the future data the model will actually face."},
+ {q:"You call train_test_split on 500 rows with test_size=0.2. How many rows go to the test set?",o:["20","80","100","400"],a:2,e:"20% of 500 is 100 test rows; 400 stay for training."},
+ {q:"What does random_state=42 do in train_test_split?",o:["Makes the model 42% more accurate","Fixes the shuffle so the same split is produced every run","Selects 42 rows for testing","Sets the number of features"],a:1,e:"It seeds the random number generator, making results reproducible. The number itself has no special meaning."},
+ {q:"What is the purpose of stratify=y?",o:["It sorts the data by label","It removes the rare class","It keeps the class proportions the same in the train and test sets","It scales the features"],a:2,e:"Stratifying guarantees, for example, that a class making up 5% of the data is about 5% of both sets. Critical for imbalanced data."},
+ {q:"A student fits StandardScaler on the full dataset, then splits into train and test. What is the problem?",o:["Nothing, this is the recommended order","Data leakage: test-set statistics influence training","The scaler will crash on test data","The model cannot use scaled data"],a:1,e:"Split first, then fit preprocessing on X_train only (a Pipeline does this for you). Otherwise the test set is no longer truly unseen."},
+ {q:"In scikit-learn’s uniform API, which method trains a model?",o:["model.train(X, y)","model.fit(X_train, y_train)","model.learn(X_train)","model.predict(X_train, y_train)"],a:1,e:"Every estimator learns with fit, makes predictions with predict, and evaluates with score."},
+ {q:"LinearRegression is the right choice when the target y is…",o:["A category such as spam / not spam","A continuous number such as a price","Always binary 0/1","Text"],a:1,e:"Linear regression predicts numeric values. Its default score is R². For categories use a classifier."},
+ {q:"What does LinearRegression.score() return by default?",o:["Accuracy","R² (coefficient of determination)","Mean squared error","Recall"],a:1,e:"Regressors return R² from score; classifiers return accuracy."},
+ {q:"A KNN classifier with k=1 typically…",o:["Underfits, with a very smooth boundary","Overfits, scoring 100% on training data but worse on test data","Ignores the training data","Cannot make predictions"],a:1,e:"With k=1 each training point is its own nearest neighbour, so training accuracy is perfect, but the jagged boundary follows noise."},
+ {q:"Why should you scale features before using KNN?",o:["KNN only accepts values between 0 and 1","KNN is distance-based, so a feature with a large range would dominate the distance","Scaling increases the number of neighbours","It is not needed for KNN"],a:1,e:"Income in thousands would swamp age in years when computing distances. Trees split one feature at a time and do not need scaling."},
+ {q:"A decision tree scores 100% on training data and 78% on test data. What is the best first fix?",o:["Remove the test set","Limit its complexity, e.g. set max_depth","Increase random_state","Use more test data than training data"],a:1,e:"The large gap signals overfitting. Restricting depth (or min_samples_leaf) forces simpler, more general rules."},
+ {q:"Which statement about LogisticRegression is true?",o:["It is a regression model for continuous targets","It is a classifier and can output class probabilities with predict_proba","It cannot be used with scikit-learn pipelines","It requires k neighbours"],a:1,e:"Despite the name, logistic regression is a linear classifier. predict_proba gives the probability of each class."},
+ {q:"95% of emails in a dataset are not spam. A model that always predicts ‘not spam’ has accuracy…",o:["5%","50%","95%","100%"],a:2,e:"It is right on every non-spam email. That is why accuracy alone is misleading on imbalanced data: this model catches zero spam."},
+ {q:"For binary labels 0/1, confusion_matrix(y_true, y_pred) in scikit-learn is laid out as…",o:["[[TP, FP], [FN, TN]]","[[TN, FP], [FN, TP]]","[[TN, FN], [FP, TP]]","[[FP, TN], [TP, FN]]"],a:1,e:"Rows are actual classes, columns are predicted classes, both ordered 0 then 1. So the top-left is TN and bottom-right is TP."},
+ {q:"Precision is calculated as…",o:["TP / (TP + FN)","TP / (TP + FP)","(TP + TN) / total","TN / (TN + FP)"],a:1,e:"Precision asks: of everything predicted positive, what fraction really was positive?"},
+ {q:"A model has TP = 40, FP = 10, FN = 20. What is its recall?",o:["0.80","0.67","0.33","0.50"],a:1,e:"Recall = TP / (TP + FN) = 40 / 60 ≈ 0.67. (Precision would be 40 / 50 = 0.80.)"},
+ {q:"In a cancer-screening test, missing a sick patient is far worse than a false alarm. Which metric should you prioritise?",o:["Precision","Recall","Accuracy","Training time"],a:1,e:"Recall measures how many actual positives you catch. False alarms can be cleared by follow-up tests; missed cases cannot."},
+ {q:"What is the F1 score?",o:["The average of accuracy and recall","The harmonic mean of precision and recall","The number of false positives","Accuracy on the first fold"],a:1,e:"F1 = 2·P·R / (P + R). It is high only when both precision and recall are high."},
+ {q:"Lowering a classifier’s decision threshold (e.g. from 0.5 to 0.3) usually…",o:["Increases recall and decreases precision","Increases precision and decreases recall","Changes nothing","Increases both precision and recall"],a:0,e:"More samples get flagged positive, so you catch more true positives (recall up) but also raise more false alarms (precision down)."},
+ {q:"Which LogisticRegression option helps the model pay more attention to a rare class?",o:["max_iter=5000","class_weight='balanced'","random_state=0","fit_intercept=False"],a:1,e:"class_weight='balanced' weights errors on each class inversely to its frequency, typically raising recall on the minority class."}
+];
+
+let quizQs=[], quizStart=null;
+function showQuiz(){
+  const done=state.completed.length>=3;
+  $("#quizLocked").classList.toggle("d-none",done);
+  if(!done){["#quizForm","#quizFooter","#resultWrap"].forEach(s=>$(s).classList.add("d-none"));return;}
+  if(state.result && !state._retaking){renderResult(state.result);return;}
+  if(!quizQs.length) buildQuiz();
+  $("#quizForm").classList.remove("d-none");$("#quizFooter").classList.remove("d-none");$("#resultWrap").classList.add("d-none");
+}
+function buildQuiz(){
+  const r=mulberry32(Date.now()%100000);
+  quizQs=shuffle(BANK.map((b,i)=>({...b,id:i})),r).slice(0,Math.min(CONFIG.questionsPerAttempt,BANK.length))
+    .map(q=>{const order=shuffle([0,1,2,3].slice(0,q.o.length),r);return {...q,order};});
+  quizStart=Date.now();
+  $("#totalCount").textContent=quizQs.length;
+  $("#quizForm").innerHTML=quizQs.map((q,n)=>`
+    <fieldset class="q-card">
+      <legend class="q-num fs-6 mb-0">Question ${n+1} of ${quizQs.length}</legend>
+      <div class="q-text">${esc(q.q)}</div>
+      ${q.order.map(oi=>`<label class="opt"><input class="form-check-input" type="radio" name="q${n}" value="${oi}"><span>${esc(q.o[oi])}</span></label>`).join("")}
+    </fieldset>`).join("");
+  $("#quizForm").onchange=e=>{
+    const fs=e.target.closest("fieldset");fs.querySelectorAll(".opt").forEach(l=>l.classList.toggle("picked",l.querySelector("input").checked));
+    const n=quizQs.filter((_,i)=>$(`input[name="q${i}"]:checked`)).length;
+    $("#answeredCount").textContent=n;$("#submitQuiz").disabled=n<quizQs.length;
+  };
+  $("#answeredCount").textContent=0;$("#submitQuiz").disabled=true;
+}
+$("#submitQuiz").onclick=()=>{
+  if(!confirm("Submit your answers? You cannot change them after submitting."))return;
+  const answers=quizQs.map((q,i)=>{const c=$(`input[name="q${i}"]:checked`);return c?+c.value:-1;});
+  const score=answers.filter((a,i)=>a===quizQs[i].a).length;
+  const res={name:state.name,roll:state.roll,score,total:quizQs.length,pct:Math.round(score/quizQs.length*100),
+    secs:Math.round((Date.now()-quizStart)/1000),date:new Date().toISOString(),
+    items:quizQs.map((q,i)=>({id:q.id,order:q.order,ans:answers[i]}))};
+  state.result=res; state.attempts=(state.attempts||0)+1; delete state._retaking; save();
+  buildSteps(); $$(".step-btn").forEach(b=>b.classList.toggle("active",+b.dataset.goto===4));
+  renderResult(res); sendResult(res); window.scrollTo({top:0,behavior:"smooth"});
+};
+function gradeOf(p){return p>=85?"A":p>=70?"B":p>=55?"C":p>=CONFIG.passPercent?"D":"F";}
+function renderResult(res){
+  ["#quizForm","#quizFooter"].forEach(s=>$(s).classList.add("d-none"));$("#resultWrap").classList.remove("d-none");
+  $("#quizIntro").textContent="Your submitted result. Print it or save it as a PDF to hand in.";
+  $("#rName").textContent=res.name;$("#rRoll").textContent=res.roll;
+  $("#rDate").textContent="Submitted "+new Date(res.date).toLocaleString();
+  $("#rScore").textContent=`${res.score}/${res.total}`;$("#rPct").textContent=res.pct+"%";
+  $("#rTime").textContent=`Time taken ${Math.floor(res.secs/60)} min ${res.secs%60} s`;
+  const g=gradeOf(res.pct);$("#rGrade").textContent=g;
+  $("#rGrade").style.borderColor=g==="F"?"var(--bad)":"var(--good)";
+  $("#rMsg").textContent=res.pct>=85?"Excellent work. You can split data honestly and pick the right metric.":
+    res.pct>=CONFIG.passPercent?"Passed. Review the questions you missed below, especially any on metrics.":
+    "Not passed yet. Revisit Parts 1–3 and read the explanations below.";
+  $("#retakeBtn").classList.toggle("d-none",!CONFIG.allowRetake);
+  $("#reviewList").innerHTML=res.items.map((it,n)=>{const q=BANK[it.id];const ok=it.ans===q.a;
+    return `<div class="q-card"><div class="q-num">Question ${n+1} · ${ok?'<span style="color:var(--good)"><i class="bi bi-check-circle-fill"></i> Correct</span>':'<span style="color:var(--bad)"><i class="bi bi-x-circle-fill"></i> Incorrect</span>'}</div>
+      <div class="q-text">${esc(q.q)}</div>
+      ${it.order.map(oi=>`<div class="opt ${oi===q.a?'correct':oi===it.ans?'wrong':''}">${oi===q.a?'<i class="bi bi-check-lg"></i>':oi===it.ans?'<i class="bi bi-x-lg"></i>':'<i class="bi bi-dot"></i>'}<span>${esc(q.o[oi])}</span></div>`).join("")}
+      <div class="explain"><i class="bi bi-lightbulb"></i> ${esc(q.e)}</div></div>`;}).join("");
+}
+$("#printBtn").onclick=()=>window.print();
+$("#retakeBtn").onclick=()=>{if(!CONFIG.allowRetake)return;state._retaking=true;quizQs=[];save();showQuiz();window.scrollTo({top:0});};
+async function sendResult(res){
+  if(!CONFIG.submitUrl){$("#submitStatus").textContent="";return;}
+  $("#submitStatus").textContent="Sending result to your teacher…";
+  try{await fetch(CONFIG.submitUrl,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},
+      body:JSON.stringify({name:res.name,roll:res.roll,score:res.score,total:res.total,percent:res.pct,grade:gradeOf(res.pct),seconds:res.secs,date:res.date,lab:"Scikit-learn"})});
+    $("#submitStatus").textContent="Result sent to your teacher.";}
+  catch(e){$("#submitStatus").textContent="Could not send the result automatically. Print or save it as a PDF instead.";}
+}
+
+/* ---------- boot ---------- */
+if(state.name&&state.roll)enterApp();
+</script>
+</body>
+</html>
